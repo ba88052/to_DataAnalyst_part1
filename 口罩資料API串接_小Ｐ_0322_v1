@@ -1,0 +1,86 @@
+# 1. 看到這樣的資料會想到什麼樣的應用呢？
+#(1)這樣的資料假設可以隨時更新，就可用於施政時計算個地區口罩使用率，以及存貨，運用程式自動進貨叫貨，達成智慧口罩倉儲系統，方便在緊急時刻（如2020年）進行口罩的區域配給。口罩實際使用率“或許”會比單純的人口統計來的更貼近實際需求量。
+#(2)承第一點：運用實時口罩使用量以及存貨數據，可粗估各地區“購買防疫物資之人口與頻率”，（運用30天的地區賣出量，除以1人30天平均使用口罩數，或是比較各地區差異）來評估其他防疫物資，如：酒精、快篩、甚至疫苗施打醫院位置的配給。
+#(3)搭配上地圖，可以製作口罩庫存地圖（已經存在）
+
+
+# 2. 請根據以下範例，透過程式碼將檔案另存新檔下載到你的電腦中：
+import requests
+import json
+
+original = "https://raw.githubusercontent.com/kiang/pharmacies/master/json/points.json"
+# 收集
+a= requests.get(original)
+data = a.text
+
+# 整理
+data = json.loads(data)
+
+# 儲存
+with open("mask.json", "w") as f:
+    f.write(json.dumps(data))
+
+# 3. 接下來，請你利用這份資料計算各地區的藥局數量：
+from collections import defaultdict
+med_count = defaultdict(int)
+
+
+for row in data ["features"]:
+    #把縣市沒有登記到的醫院自動使用住址登記上
+    if row['properties']['county'] == "":
+        county = each["address"][0:3]
+    else:
+        conunty = row['properties']['county']
+    med_count[conunty] += 1
+
+print(med_count)
+
+
+# 4. 試著計算每個地區的剩餘口罩數量(分成人的和小孩的)，並且從大到小排列
+# Method 1：透過 dictionary 存放數量
+with open('mask.json', 'r') as f:
+    data = json.load(f)
+
+from collections import defaultdict
+
+# 宣告 dictionary 用來存放資料
+child_count = defaultdict(int)
+adult_count = defaultdict(int)
+ 
+# 將資料迭代印出做計算
+for row in data["features"]:
+    each = row["properties"]
+    #把縣市沒有登記到的醫院自動使用住址登記上
+    if each["county"] == "":
+        county = each["address"][0:3]
+    else:
+        conunty = each['county']
+    mask_child = each['mask_adult']
+    mask_adult = each['mask_child']
+    child_count[conunty] += mask_child
+    adult_count[conunty] += mask_adult
+
+# 排序
+print(sorted(adult_count.items(), key=lambda kv: kv[1], reverse=True))
+print(sorted(child_count.items(), key=lambda kv: kv[1], reverse=True))
+
+# Method 2：透過 Pandas 套件計算
+import pandas as pd
+properties = []
+
+for info in data['features']:
+    properties += [info['properties']]
+    
+#把縣市沒有登記到的醫院自動使用住址登記上
+for each in properties:
+    if each["county"] == "":
+        each["county"] = each["address"][0:3]
+
+properties = pd.DataFrame(properties)
+
+total = properties[["county", "mask_adult", "mask_child"]]
+
+
+total_sum = (total.groupby(by=['county']).sum()).sort_values(by=["mask_adult", "mask_child"], ascending=False)
+
+print(total_sum)
