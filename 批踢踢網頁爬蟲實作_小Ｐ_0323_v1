@@ -1,0 +1,111 @@
+# 1. 首先，請你嘗試將每篇文章網址抓出來：
+import requests
+from bs4 import BeautifulSoup
+
+payload = {
+    "from": "/bbs/Gossiping/index.html",
+    "yes": "yes"
+}
+headers = {
+  'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'
+}
+
+
+rs = requests.Session()
+rs.post('https://www.ptt.cc/ask/over18', data=payload, headers=headers)
+res = rs.get('https://www.ptt.cc/bbs/Gossiping/index.html', headers=headers)
+soup = BeautifulSoup(res.text, 'html.parser')
+
+# 填入每篇文章的class name
+items = soup.find_all('div', class_='r-ent')
+
+main_url='https://www.ptt.cc/'
+result = []
+for item in items:
+    
+    # 填入每篇文章title的class name
+    title = item.find('div', class_='title').text.strip()
+    
+    # 填入每篇文章url的tag和attribute
+    url = main_url + item.find('a')['href']
+    result.append([title, url])
+# 2. 接下來，透過文章網址將內文一起抓出來：
+content_list = []
+for row in result:
+    title, url = row[0], row[1]
+
+  # 填入session資訊並且透過request來得到HTML
+    rs_in = requests.Session()
+    rs_in.post('https://www.ptt.cc/ask/over18', data=payload, headers=headers)
+    res_in = rs.get(url, headers=headers)
+    soup = BeautifulSoup(res_in.text, 'html.parser')
+
+  # 填入正確的tag和名稱
+    content = soup.find('div', id='main-content').text
+    content_list.append([title, url, content])
+
+# 存檔
+# import pandas as pd
+# pd.DataFrame(content_list, columns=['title','url','content']).to_excel('content.csv')
+
+# 3. 試著用程式碼抓取下一頁的內容（透過抓取按鈕「上頁」的網址，來獲得下一頁的 HTML），並且觀察看看每頁的網址的改變：
+
+def ppt_next_page(nowpage):
+    import requests
+    from bs4 import BeautifulSoup
+    payload = {
+        "from": "/bbs/Gossiping/index.html",
+        "yes": "yes"
+    }
+    headers = {
+      'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'
+    }
+    rs = requests.Session()
+    rs.post('https://www.ptt.cc/ask/over18', data=payload, headers=headers)
+    res = rs.get(nowpage, headers=headers)
+    soup = BeautifulSoup(res.text, 'html.parser')
+    next_pages = soup.find_all("a", class_="btn wide")
+    main_url = 'https://www.ptt.cc/'
+    next_page_url = main_url + next_pages[1]["href"]
+    return next_page_url
+
+def ppt_title_url(url):
+    payload = {
+        "from": "/bbs/Gossiping/index.html",
+        "yes": "yes"
+    }
+    headers = {
+      'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'
+    }
+    res_n = rs.get(url, headers=headers)
+    soup_n = BeautifulSoup(res_n.text, 'html.parser')
+    items_n = soup_n.find_all('div', class_='r-ent')
+    result_n = []
+    for item in items_n:
+        title = item.find('div', class_='title').text.strip()
+        url = main_url + item.find('a')['href']
+        result_n.append([title, url])
+    return result_n
+    
+firstpage = "https://www.ptt.cc/bbs/Gossiping/index.html"
+page = firstpage
+
+for i in range(10):
+    print(ppt_next_page(page))
+    page = ppt_next_page(page)
+
+＃回傳 ⬇️
+#https://www.ptt.cc//bbs/Gossiping/index39147.html
+#https://www.ptt.cc//bbs/Gossiping/index39146.html
+#https://www.ptt.cc//bbs/Gossiping/index39145.html
+#https://www.ptt.cc//bbs/Gossiping/index39144.html
+#https://www.ptt.cc//bbs/Gossiping/index39143.html
+#https://www.ptt.cc//bbs/Gossiping/index39142.html
+#https://www.ptt.cc//bbs/Gossiping/index39141.html
+#https://www.ptt.cc//bbs/Gossiping/index39140.html
+#https://www.ptt.cc//bbs/Gossiping/index39139.html
+#https://www.ptt.cc//bbs/Gossiping/index39138.html
+
+#4. 最後請你想一下，當你拿到像這樣的資料集後可以做到什麼樣的應用呢？
+1. 做自然語意分析，判斷網路風向、熱點，或是做特定主題推薦等。
+2. 根據留言數量，以及發帖數量，判斷議題熱度。
